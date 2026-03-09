@@ -718,8 +718,16 @@
       return PROXY_BASE + encodeURIComponent(url);
     }
 
-    function formatTime(dt = new Date()) {
+    function formatTime(dt = new Date().toLocaleDateString('en-US')) {
       return dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function parseApiDateAsLocal(isoDateStr) {
+      if (!isoDateStr) return null;
+      const parts = isoDateStr.split("-").map((p) => parseInt(p, 10));
+      if (parts.length !== 3 || parts.some(isNaN)) return null;
+      const [y, m, d] = parts;
+      return new Date(y, m - 1, d);
     }
 
     function classifyPrecip(prob) {
@@ -810,12 +818,13 @@
         .map((fd, idx) => {
           const dateStr = fd.date;
           const dayObj = fd.day || {};
-          const labelDate = dateStr ? new Date(dateStr) : null;
+          //const labelDate = dateStr ? new Date(dateStr) : null;
+          const labelDate = fd.date ? parseApiDateAsLocal(dateStr) : null;
           const label =
             idx === 0
               ? "Today"
               : labelDate
-              ? labelDate.toLocaleDateString([], { weekday: "short" })
+              ? labelDate.toLocaleDateString('en-US', { weekday: "short" })
               : `Day ${idx + 1}`;
 
           const hiF =
@@ -845,7 +854,7 @@
     }
 
     function renderWeatherCard(container, location, data) {
-      const now = new Date();
+      const now = new Date().toLocaleDateString('en-US');
       const loc = data.location || {};
       const current = data.current || {};
       const forecast = data.forecast || {};
@@ -856,8 +865,9 @@
 
       const cityName = loc.name || location.label || `ZIP ${location.zip}`;
       const region = loc.region || location.state || "";
-      const dateStr = today?.date || now.toISOString().slice(0, 10);
-
+      //const dateStr = today?.date || now.toISOString().slice(0, 10);
+      const dateStr = today?.date || null;
+      const displayDate = dateStr ? parseApiDateAsLocal(dateStr) : now;
       const tempF = current.temp_f != null ? current.temp_f : "—";
       const conditionText = current.condition?.text || "Unavailable";
       const feelsLikeF =
@@ -887,10 +897,7 @@
                 ZIP ${location.zip} · ${region}
               </div>
               <div class="badge-zip">
-                Today · ${new Date(dateStr).toLocaleDateString([], {
-                  month: "short",
-                  day: "numeric"
-                })}
+                Today · ${displayDate.toLocaleDateString('en-US', { month: "short", day: "numeric" })}
               </div>
             </div>
             <div class="status-chip">
